@@ -27,4 +27,14 @@ Foundation. [Read about the Shrink Circuits Nomad Lab grant](https://www.awesome
 
 The site pairs the original image archive with a lightweight, responsive
 interface. It is built with Next.js and React, uses the open-source Roboto and
-Roboto Condensed typefaces, and is published from this repository.
+Roboto Condensed typefaces, and is published as a static site on GitHub Pages.
+
+## GitHub Pages deployment
+
+Run `npm run pages:build` to create the static export and synchronize the
+Pages-ready files into the repository root. The generated output includes the
+homepage, every project route, bundled styles and scripts, images, the custom
+domain file, and `.nojekyll` so GitHub Pages serves Next.js assets correctly.
+
+Run `npm test` before publishing. GitHub Pages serves the root of the
+`gh-pages` branch at [shrinkcircuits.org](https://shrinkcircuits.org).

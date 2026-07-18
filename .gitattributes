@@ -1,0 +1,3 @@
+# Generated Next.js bundles may contain intentional whitespace inside
+# multi-line runtime error strings.
+_next/** -whitespace

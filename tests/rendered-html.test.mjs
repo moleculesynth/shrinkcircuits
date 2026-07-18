@@ -3,32 +3,16 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${pathname}`);
-  const { default: worker } = await import(workerUrl.href);
+  const relativePath =
+    pathname === "/"
+      ? "index.html"
+      : `${pathname.replace(/^\//, "").replace(/\/$/, "")}/index.html`;
 
-  return worker.fetch(
-    new Request(`http://localhost${pathname}`, {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+  return readFile(new URL(`../out/${relativePath}`, import.meta.url), "utf8");
 }
 
-test("server-renders the finished Shrink Circuits homepage", async () => {
-  const response = await render();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-
-  const html = await response.text();
+test("exports the finished Shrink Circuits homepage", async () => {
+  const html = await render();
   assert.match(html, /<title>Shrink Circuits — Mobile MakerLab<\/title>/i);
   assert.match(html, /<h1[^>]*class="visually-hidden"[^>]*id="home-title"[^>]*>Shrink Circuits<\/h1>/i);
   assert.match(html, /class="project-card project-card--document"/i);
@@ -39,9 +23,9 @@ test("server-renders the finished Shrink Circuits homepage", async () => {
   assert.match(html, /Maker Edu on the Move/i);
   assert.match(html, /\/images\/cover\/2500\.webp/i);
   assert.match(html, /Mobile MakerLab \/ Workshops \/ Design for Learning/);
-  assert.match(html, /href="\/steamteam"/);
-  assert.match(html, /href="\/wsu"/);
-  assert.match(html, /href="\/wall"/);
+  assert.match(html, /href="\/steamteam\/?"/);
+  assert.match(html, /href="\/wsu\/?"/);
+  assert.match(html, /href="\/wall\/?"/);
   assert.match(html, /property="og:image" content="https:\/\/shrinkcircuits\.org\/og\.png"/i);
   assert.match(html, /<footer[^>]*class="site-footer"[^>]*><a[\s\S]*Travis Feldman[\s\S]*<\/a><\/footer>/i);
   assert.doesNotMatch(html, /<header\b|An image archive of workshops|home-hero-image|circuit-word|hero-kicker/i);
@@ -50,7 +34,7 @@ test("server-renders the finished Shrink Circuits homepage", async () => {
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("server-renders every project archive", async () => {
+test("exports every project archive", async () => {
   const projects = [
     ["/steamteam", "S.T.E.P. Lab", "STEAM Team Extended Play", "/images/steamteam/18.webp"],
     ["/wsu", "WSU–DTC 338", "WSU–DTC 338", "/images/wsu/16.webp"],
@@ -58,9 +42,7 @@ test("server-renders every project archive", async () => {
   ];
 
   for (const [pathname, title, heading, finalImage] of projects) {
-    const response = await render(pathname);
-    assert.equal(response.status, 200, pathname);
-    const html = await response.text();
+    const html = await render(pathname);
     assert.match(html, new RegExp(`<title>${title} — Shrink Circuits<\\/title>`, "i"));
     assert.match(html, new RegExp(`<h1[^>]*>${heading}<\\/h1>`, "i"));
     assert.match(html, new RegExp(finalImage.replaceAll("/", "\\/")));
@@ -89,8 +71,16 @@ test("ships the new brand assets and removes the disposable starter", async () =
     access(new URL("../public/images/cover/2500.webp", import.meta.url)),
     access(new URL("../public/images/home/1.1.webp", import.meta.url)),
     access(new URL("../public/images/wall/32.webp", import.meta.url)),
+    access(new URL("../out/index.html", import.meta.url)),
+    access(new URL("../out/steamteam/index.html", import.meta.url)),
+    access(new URL("../out/wsu/index.html", import.meta.url)),
+    access(new URL("../out/wall/index.html", import.meta.url)),
+    access(new URL("../out/CNAME", import.meta.url)),
+    access(new URL("../index.html", import.meta.url)),
+    access(new URL("../.nojekyll", import.meta.url)),
   ]);
 
   await assert.rejects(access(new URL("../app/_sites-preview", import.meta.url)));
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  assert.doesNotMatch(packageJson, /vinext|wrangler|cloudflare/i);
 });
